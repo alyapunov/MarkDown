@@ -1,0 +1,9 @@
+| Engine        | vinyl/mem   | vinyl/disk      | memtx/old   | memtx/mvcc  |
+| ------------- | ----------- | --------------- | ----------- | ----------- |
+| 1: get AC     | dirty       | dirty           | dirty       | clean       |
+| 2: get TX     | dirty       | dirty           | dirty       | dirty       |
+| 3: upd AC     | no conflict | conflict        | no conflict | no conflict |
+| 4: upd TX     | no conflict | conflict        | no conflict | no conflict |
+| 5: get+put AC | no conflict | no conflict     | no conflict | wrong       |
+| 6: get+put TX | no conflict | conflict        | no conflict | no conflict |
+| 7: robin hood | dirty       | excess conflict | dirty       | dirty       |

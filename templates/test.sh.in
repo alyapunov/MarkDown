@@ -1,0 +1,101 @@
+#!/bin/bash
+# BSD 2-Clause License
+#
+# Copyright (c) 2021, Aleksandr Lyapunov
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice, this
+#    list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+#    this list of conditions and the following disclaimer in the documentation
+#    and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+source_dir="@CMAKE_SOURCE_DIR@"
+bin_file="@BIN_FILE@"
+work_dir="@CMAKE_BINARY_DIR@"
+
+init_result=false
+if [[ "$1" == "-i" ]] || [[ "$1" == "--init-result" ]] || [[ "$2" == "-i" ]] || [[ "$2" == "--init-result" ]]; then
+    init_result=true
+fi
+update_result=false
+if [[ "$1" == "-u" ]] || [[ "$1" == "--update-result" ]] || [[ "$2" == "-u" ]] || [[ "$2" == "--update-result" ]]; then
+    update_result=true
+fi
+
+source_test_dir="$source_dir/tests"
+work_test_dir="$work_dir/tests_work"
+bin_path="$work_dir/$bin_file"
+
+mkdir -p "$work_test_dir"
+FILES="$work_test_dir/*"
+rm -f $FILES
+
+result="0"
+FILES="$source_test_dir/data*.txt"
+for file in $FILES; do
+    regex=".*/data([0-9]+).txt"
+    if [[ "$file" =~ $regex ]]; then
+        suffix="${BASH_REMATCH[1]}"
+    else
+        echo "Filename parse failed! $file"
+        continue
+    fi
+    name="data$suffix.txt"
+    work_file="$work_test_dir/$name"
+    src_ref_file="$source_test_dir/$bin_file$suffix.ref"
+    ref_file="$work_test_dir/$bin_file$suffix.ref"
+    rej_file="$work_test_dir/$bin_file$suffix.rej"
+
+    cp "$file" "$work_file"
+    cat "$work_file" | "$bin_path" > "$rej_file"
+    echo "---------------- TEST $name ----------------"
+    cat "$work_file"
+    echo "-------------------- RESULT -------------------"
+    cat "$rej_file"
+    echo "--------------------- END ---------------------"
+
+    if [[ -f "$src_ref_file" ]]; then
+        cp "$src_ref_file" "$ref_file"
+    else
+        if [[ $init_result == false ]]; then
+            echo "Reference file $bin_file$suffix.ref was not found!"
+            result="-1"
+        else
+            cp "$rej_file" "$src_ref_file"
+            cp "$rej_file" "$ref_file"
+            echo "Initialized $bin_file$suffix.ref"
+        fi
+    fi
+
+    if [[ -f "$src_ref_file" ]] && ! diff "$ref_file" "$rej_file"; then
+        if [[ $update_result == false ]]; then
+            echo "Result mismatch reference file!"
+        else
+            cp "$rej_file" "$src_ref_file"
+            echo "Updated $bin_file$suffix.ref"
+        fi
+        result="-1"
+    fi
+done
+if [[ $result == 0 ]]; then
+    echo "Success"
+else
+    echo "Some errors found"
+fi
+exit $result

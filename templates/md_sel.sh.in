@@ -1,0 +1,11 @@
+#!/bin/bash
+
+bin_dir="@CMAKE_BINARY_DIR@"
+bin_file="@BIN_FILE@"
+
+xclip -o -sel c | xclip -i -sel s
+xdotool keyup alt shift
+xdotool key ctrl+c
+xclip -o -sel c | "$bin_dir/$bin_file" | xclip -i -sel c
+xdotool key ctrl+v
+xclip -o -sel s | xclip -i -sel c

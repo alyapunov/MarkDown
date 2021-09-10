@@ -32,6 +32,34 @@ if [[ "$1" == "-u" ]] || [[ "$1" == "--uninstall" ]]; then
     is_uninstall=true
 fi
 
+if [[ $is_uninstall == false ]]; then
+    if ! xclip -help > /dev/null 2>&1 || ! xdotool --help > /dev/null 2>&1; then
+        echo "xclip and/or xdotool utilities was not found."
+        echo "Without them selection format will not work."
+        echo "Please install them manually like 'sudo apt install xclip xdotool'"
+        read -p "Do you with to continue MarkDown installation [Yn]?" yn
+        case ${yn:-y} in
+            [Yy]* ) echo "OK, please install them later.";;
+            [Nn]* ) echo "OK, exiting..."; exit 1;;
+            * ) echo "Wrong answer"; exit 1;;
+        esac
+    fi
+
+    path_pattern=~
+    path_pattern=":$path_pattern/bin:"
+    if ! [[ ":$PATH:" =~ $path_pattern ]]; then
+        echo "It's strange, but ~/bin is not in \$PATH list."
+        echo "Some utilities are about to install there. That means they won't work."
+        echo "I don't know how to fix that."
+        read -p "Do you with to continue MarkDown installation [Yn]?" yn
+        case ${yn:-y} in
+            [Yy]* ) echo "OK, please check it later.";;
+            [Nn]* ) echo "OK, exiting..."; exit 1;;
+            * ) echo "Wrong answer"; exit 1;;
+        esac
+    fi
+fi
+
 get_binding_name() {
     local binding="$1"
     gsettings get "org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:$binding" name
